@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/flood_model.dart';
-// import '../services/mock_flood_service.dart';
 import '../services/user_service.dart'; // Import Service User
-import '../services/api_flood_service.dart'; // CHANGE THIS IMPORT
+import '../services/api_flood_service.dart'; 
 import 'mitigation_page.dart';
 import 'emergency_page.dart';
 import 'profile_page.dart';
@@ -17,7 +16,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController _cityController = TextEditingController();
   final MockUserService _userService = MockUserService();
-  // CHANGE THIS LINE: Use the API Service instead of Mock
   final ApiFloodService _floodService = ApiFloodService(); 
   
   FloodModel? _floodData;
@@ -32,7 +30,6 @@ class _HomePageState extends State<HomePage> {
       _floodData = null;
     });
 
-    // The API call happens here
     FloodModel result = await _floodService.getPrediction(query);
 
     setState(() {
@@ -43,7 +40,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // Ambil data avatar user saat ini dari Service
     final currentAvatar = _userService.avatarList[_userService.avatarIndex];
 
     return Scaffold(
@@ -53,50 +49,36 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        
-        // === HILANGKAN TOMBOL BACK (PANAH KIRI) ===
         automaticallyImplyLeading: false, 
-        // ==========================================
-        
-        // === ICON PROFILE DINAMIS (KANAN ATAS) ===
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: GestureDetector(
               onTap: () {
-                // Navigasi ke Profile Page
-                // Menggunakan 'then' -> Saat kembali dari Profile, refresh Home Page
                 Navigator.push(
                   context, 
                   MaterialPageRoute(builder: (context) => const ProfilePage())
                 ).then((_) {
-                  setState(() {}); // Refresh UI agar avatar berubah jika baru diganti
+                  setState(() {});
                 });
               },
-              // Tampilan Icon Avatar Kecil
               child: Container(
-                padding: const EdgeInsets.all(2), // Border tipis
+                padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
                 ),
                 child: CircleAvatar(
-                  radius: 18, // Ukuran kecil untuk AppBar
+                  radius: 18, 
                   backgroundColor: currentAvatar['color'].withOpacity(0.2),
-                  child: Icon(
-                    currentAvatar['icon'], 
-                    size: 20, 
-                    color: currentAvatar['color'] // Warna asli icon (sesuai pilihan user)
-                  ),
+                  child: Icon(currentAvatar['icon'], size: 20, color: currentAvatar['color']),
                 ),
               ),
             ),
           )
         ],
-        // =========================================
       ),
       
-      // Tombol SOS Melayang
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const EmergencyPage()));
@@ -107,15 +89,11 @@ class _HomePageState extends State<HomePage> {
       ),
 
       body: Container(
-        // Background Gradient
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF2E335A), // Ungu Gelap
-              Color(0xFF1C1B33), // Hitam Kebiruan
-            ],
+            colors: [Color(0xFF2E335A), Color(0xFF1C1B33)],
           ),
         ),
         child: SafeArea(
@@ -124,12 +102,7 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // === SECTION 1: SEARCH BAR ===
-                const Text(
-                  "Cek Risiko Banjir",
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
-                ),
-                const SizedBox(height: 10),
+                // SEARCH BAR
                 TextField(
                   controller: _cityController,
                   style: const TextStyle(color: Colors.white),
@@ -150,9 +123,9 @@ class _HomePageState extends State<HomePage> {
                   onSubmitted: (val) => _searchRisk(val),
                 ),
 
-                const SizedBox(height: 30),
+                const SizedBox(height: 20),
 
-                // === SECTION 2: AREA KONTEN ===
+                // CONTENT
                 Expanded(
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator(color: Colors.purpleAccent))
@@ -168,72 +141,59 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // --- WIDGET LOGIKA TAMPILAN ---
-
   Widget _buildResultContent(FloodModel data) {
-    // 1. KASUS TYPO ("Mungkin maksud Anda...")
-    if (data.risk == "Typo") {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.help_outline, size: 60, color: Colors.orangeAccent),
-            const SizedBox(height: 20),
-            const Text("Lokasi tidak ditemukan tepat.", style: TextStyle(color: Colors.white60)),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text("Mungkin maksud Anda: ", style: TextStyle(color: Colors.white)),
-                GestureDetector(
-                  onTap: () {
-                    // KLIK SARAN -> OTOMATIS SEARCH ULANG
-                    if (data.suggestedCity != null) {
-                      _searchRisk(data.suggestedCity!); 
-                    }
-                  },
-                  child: Text(
-                    "\"${data.suggestedCity}\"?", 
-                    style: const TextStyle(
-                      color: Colors.purpleAccent, 
-                      fontWeight: FontWeight.bold,
-                      decoration: TextDecoration.underline,
-                      fontSize: 18,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    }
-
-    // 2. KASUS TIDAK KETEMU SAMA SEKALI
-    if (data.risk == "NotFound") {
+    if (data.risk == "NotFound" || data.risk == "Error") {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.search_off, size: 60, color: Colors.redAccent),
             SizedBox(height: 20),
-            Text(
-              "Lokasi tidak dikenal.", 
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
-            ),
-            SizedBox(height: 10),
-            Text(
-              "Mohon cek kembali ejaan lokasi Anda.", 
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white54),
-            ),
+            Text("Lokasi tidak ditemukan.", style: TextStyle(color: Colors.white)),
           ],
         ),
       );
     }
 
-    // 3. KASUS BERHASIL -> TAMPILKAN KARTU
-    return SingleChildScrollView(child: _buildRiskCard(data));
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. HEADER CITY
+          Center(
+            child: Text(data.cityName, 
+              style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)
+            )
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // 2. MAIN CARD (TODAY)
+          const Text("HARI INI", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+          const SizedBox(height: 10),
+          if (data.current != null) _buildMainCard(data.current!),
+
+          const SizedBox(height: 30),
+
+          // 3. NEXT 4 DAYS (Horizontal List)
+          if (data.forecast.isNotEmpty) ...[
+            const Text("4 HARI KEDEPAN", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+            const SizedBox(height: 15),
+            
+            SizedBox(
+              height: 160,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: data.forecast.length,
+                itemBuilder: (context, index) {
+                  return _buildSmallCard(data.forecast[index]);
+                },
+              ),
+            ),
+          ]
+        ],
+      ),
+    );
   }
 
   Widget _buildEmptyState() {
@@ -249,167 +209,89 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // === KARTU RISIKO DENGAN IKON CUACA DINAMIS ===
-  Widget _buildRiskCard(FloodModel data) {
+  // === BIG CARD (TODAY) ===
+  Widget _buildMainCard(DailyForecast data) {
     List<Color> gradientColors;
-    Color shadowColor;
-
     if (data.risk == "High") {
-      gradientColors = [const Color(0xFFFF512F), const Color(0xFFDD2476)]; // Merah
-      shadowColor = Colors.red;
+      gradientColors = [const Color(0xFFFF512F), const Color(0xFFDD2476)];
     } else if (data.risk == "Medium") {
-      gradientColors = [const Color(0xFFFF8008), const Color(0xFFFFC837)]; // Oranye
-      shadowColor = Colors.orange;
+      gradientColors = [const Color(0xFFFF8008), const Color(0xFFFFC837)];
     } else {
-      gradientColors = [const Color(0xFF11998e), const Color(0xFF38ef7d)]; // Hijau
-      shadowColor = Colors.green;
+      gradientColors = [const Color(0xFF11998e), const Color(0xFF38ef7d)];
     }
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: gradientColors,
-        ),
+        gradient: LinearGradient(colors: gradientColors),
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: shadowColor.withOpacity(0.5),
-            blurRadius: 25,
-            offset: const Offset(0, 10),
-          )
-        ],
       ),
       child: Column(
         children: [
-          // 1. IKON CUACA DINAMIS (STACKED)
-          _buildDynamicWeatherIcon(data.risk),
-          
-          const SizedBox(height: 20),
-
-          // 2. TEXT STATUS
-          const Text("STATUS RISIKO", style: TextStyle(color: Colors.white70, letterSpacing: 2, fontSize: 12)),
-          Text(
-            data.risk.toUpperCase(),
-            style: const TextStyle(
-              fontSize: 48, 
-              fontWeight: FontWeight.w900, 
-              color: Colors.white,
-              shadows: [Shadow(blurRadius: 20, color: Colors.black26)],
-            ),
-          ),
-          
+          _buildDynamicWeatherIcon(data.risk, size: 100),
           const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20)
+          Text(data.risk.toUpperCase(), style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: Colors.white)),
+          Text("${data.weather}, ${data.temp}°C", style: const TextStyle(color: Colors.white, fontSize: 16)),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.shield_outlined),
+            label: const Text("Panduan Mitigasi"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white, 
+              foregroundColor: gradientColors[1],
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))
             ),
-            child: Text(
-              data.weather, 
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)
-            ),
-          ),
-
-          const Divider(color: Colors.white30, height: 40),
-          
-          // 3. TOMBOL MITIGASI
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => MitigationPage(floodData: data)),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: shadowColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                elevation: 5,
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.shield_outlined),
-                  SizedBox(width: 10),
-                  Text("Lihat Panduan Mitigasi", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                ],
-              ),
-            ),
+            onPressed: () {
+               Navigator.push(context, MaterialPageRoute(builder: (context) => MitigationPage(floodData: data)));
+            },
           )
         ],
       ),
     );
   }
 
-  // === FUNGSI PEMBUAT IKON CUACA TUMPUK (STACKED ICONS) ===
-  Widget _buildDynamicWeatherIcon(String risk) {
-    double size = 100;
+  // === SMALL CARD (FORECAST) ===
+  Widget _buildSmallCard(DailyForecast data) {
+    Color bg = data.risk == "High" ? Colors.red.withOpacity(0.8) 
+             : data.risk == "Medium" ? Colors.orange.withOpacity(0.8) 
+             : const Color(0xFF11998e).withOpacity(0.5);
 
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => MitigationPage(floodData: data)));
+      },
+      child: Container(
+        width: 110,
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(data.date, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+            const SizedBox(height: 10),
+            _buildDynamicWeatherIcon(data.risk, size: 40),
+            const SizedBox(height: 10),
+            Text("${data.temp}°C", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            Text(data.risk, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDynamicWeatherIcon(String risk, {double size = 100}) {
     if (risk == "High") {
-      // HIGH: Awan Gelap + Petir
-      return SizedBox(
-        height: size,
-        width: size,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Positioned(top: 0, child: Icon(Icons.cloud, size: size, color: Colors.white38)),
-            Positioned(top: 10, child: Icon(Icons.cloud, size: size * 0.9, color: Colors.white)),
-            Positioned(bottom: 5, child: Icon(Icons.bolt, size: size * 0.6, color: Colors.yellowAccent)),
-          ],
-        ),
-      );
+      return Icon(Icons.bolt, size: size, color: Colors.yellowAccent);
     } else if (risk == "Medium") {
-      // MEDIUM: Awan + Hujan Deras
-      return SizedBox(
-        height: size,
-        width: size,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Positioned(top: 0, child: Icon(Icons.cloud, size: size, color: Colors.white38)), 
-            Positioned(top: 5, child: Icon(Icons.cloud, size: size * 0.9, color: Colors.white)),
-            Positioned(
-              bottom: 0, 
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.water_drop, size: 20, color: Colors.blueAccent),
-                  Icon(Icons.water_drop, size: 20, color: Colors.lightBlueAccent),
-                  Icon(Icons.water_drop, size: 20, color: Colors.blueAccent),
-                ],
-              )
-            ), 
-          ],
-        ),
-      );
+      return Icon(Icons.water_drop, size: size, color: Colors.lightBlueAccent);
     } else {
-      // LOW: Matahari + Awan Kecil
-      return SizedBox(
-        height: size,
-        width: size,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Positioned(
-              right: 0, top: 0,
-              child: Icon(Icons.wb_sunny_rounded, size: size * 0.8, color: Colors.yellowAccent)
-            ),
-            Positioned(
-              left: 0, bottom: 0,
-              child: Icon(Icons.cloud, size: size * 0.7, color: Colors.white)
-            ),
-          ],
-        ),
-      );
+      return Icon(Icons.wb_sunny_rounded, size: size, color: Colors.orangeAccent);
     }
   }
 }

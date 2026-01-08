@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:ui'; // Needed for GlassCard blur
 import '../models/flood_model.dart';
-import '../widgets/glass_card.dart';
 
 class MitigationPage extends StatefulWidget {
-  final FloodModel floodData;
+  // We use DailyForecast here because we come from the 5-day forecast list
+  final DailyForecast floodData;
 
   const MitigationPage({super.key, required this.floodData});
 
@@ -15,7 +16,7 @@ class _MitigationPageState extends State<MitigationPage> with SingleTickerProvid
   late TabController _tabController;
   final Set<String> _checkedItems = {};
 
-  // Variabel untuk menyimpan Judul & Ikon Tab yang dinamis
+  // Dynamic Titles & Icons based on Risk Level
   late List<String> _tabTitles;
   late List<IconData> _tabIcons;
 
@@ -23,37 +24,41 @@ class _MitigationPageState extends State<MitigationPage> with SingleTickerProvid
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
-    // === LOGIKA DINAMIS: MENENTUKAN JUDUL & IKON TAB BERDASARKAN RISIKO ===
     _setupTabs();
   }
 
   void _setupTabs() {
     if (widget.floodData.risk == "High") {
-      // Skenario Bahaya: Fokus pada Keselamatan & Evakuasi
+      // DANGER SCENARIO: Focus on Safety & Evacuation
       _tabTitles = ["Siaga", "Evakuasi", "Pemulihan"];
       _tabIcons = [
-        Icons.warning_amber_rounded, // Ikon Segitiga Tanda Seru
-        Icons.run_circle_outlined,   // Ikon Orang Lari
-        Icons.local_hospital_outlined // Ikon Kesehatan/RS
+        Icons.warning_amber_rounded, 
+        Icons.run_circle_outlined,   
+        Icons.local_hospital_outlined 
       ];
     } else if (widget.floodData.risk == "Medium") {
-      // Skenario Waspada: Fokus pada Pencegahan & Monitor
+      // ALERT SCENARIO: Focus on Prevention & Monitoring
       _tabTitles = ["Cegah", "Pantau", "Perawatan"];
       _tabIcons = [
-        Icons.build_circle_outlined, // Ikon Obeng/Perbaikan
-        Icons.visibility_outlined,   // Ikon Mata (Memantau)
-        Icons.cleaning_services_outlined // Ikon Bersih-bersih
+        Icons.build_circle_outlined, 
+        Icons.visibility_outlined,   
+        Icons.cleaning_services_outlined 
       ];
     } else {
-      // Skenario Aman: Fokus pada Gaya Hidup & Lingkungan (Lebih santai)
+      // CALM SCENARIO: Lifestyle & Environment
       _tabTitles = ["Tips Harian", "Aktivitas", "Lingkungan"];
       _tabIcons = [
-        Icons.wb_sunny_outlined,     // Ikon Matahari (Cerah)
-        Icons.directions_walk,       // Ikon Orang Jalan Santai
-        Icons.park_outlined          // Ikon Pohon/Taman
+        Icons.wb_sunny_outlined,     
+        Icons.directions_walk,       
+        Icons.park_outlined          
       ];
     }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
@@ -61,14 +66,11 @@ class _MitigationPageState extends State<MitigationPage> with SingleTickerProvid
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Panduan Aktivitas", style: TextStyle(color: Colors.white)),
+        title: const Text("Panduan Aktivitas", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.purpleAccent,
@@ -76,7 +78,6 @@ class _MitigationPageState extends State<MitigationPage> with SingleTickerProvid
           labelColor: Colors.purpleAccent,
           unselectedLabelColor: Colors.white54,
           dividerColor: Colors.transparent,
-          // Menggunakan List Dinamis yang sudah kita set di _setupTabs
           tabs: [
             Tab(icon: Icon(_tabIcons[0]), text: _tabTitles[0]),
             Tab(icon: Icon(_tabIcons[1]), text: _tabTitles[1]),
@@ -96,7 +97,7 @@ class _MitigationPageState extends State<MitigationPage> with SingleTickerProvid
           child: TabBarView(
             controller: _tabController,
             children: [
-              // Kirim ikon yang sesuai ke list builder
+              // Pass the specific list for each tab
               _buildChecklistTab(widget.floodData.beforeFlood, _tabIcons[0]),
               _buildChecklistTab(widget.floodData.duringFlood, _tabIcons[1]),
               _buildChecklistTab(widget.floodData.afterFlood, _tabIcons[2]),
@@ -108,6 +109,19 @@ class _MitigationPageState extends State<MitigationPage> with SingleTickerProvid
   }
 
   Widget _buildChecklistTab(List<String> items, IconData sectionIcon) {
+    if (items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(sectionIcon, size: 60, color: Colors.white24),
+            const SizedBox(height: 10),
+            const Text("Tidak ada langkah khusus.", style: TextStyle(color: Colors.white54)),
+          ],
+        ),
+      );
+    }
+
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(20, 30, 20, 20),
       itemCount: items.length,
@@ -121,19 +135,21 @@ class _MitigationPageState extends State<MitigationPage> with SingleTickerProvid
           child: CheckboxListTile(
             activeColor: Colors.purpleAccent,
             checkColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             secondary: Icon(
               sectionIcon, 
-              // Warna ikon juga berubah: Ungu kalau belum, Hijau kalau sudah
               color: isChecked ? Colors.greenAccent : Colors.white54,
-              size: 24,
+              size: 28,
             ),
             title: Text(
               itemText,
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w500,
+                fontSize: 16,
                 decoration: isChecked ? TextDecoration.lineThrough : null,
-                decorationColor: Colors.white54, // Warna coretan
+                decorationColor: Colors.white54,
+                decorationThickness: 2,
               ),
             ),
             subtitle: isChecked 
@@ -152,6 +168,38 @@ class _MitigationPageState extends State<MitigationPage> with SingleTickerProvid
           ),
         );
       },
+    );
+  }
+}
+
+// === INTERNAL GLASS CARD WIDGET ===
+// (If you don't have this in a separate file, keep it here)
+class GlassCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+
+  const GlassCard({
+    super.key,
+    required this.child,
+    this.padding,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: padding ?? const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          ),
+          child: child,
+        ),
+      ),
     );
   }
 }

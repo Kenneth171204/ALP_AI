@@ -1,29 +1,27 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart'; // 1. Needed to detect Web vs Mobile
+import 'package:flutter/foundation.dart'; 
 import '../models/flood_model.dart';
 
 class ApiFloodService {
   
-  // 2. SMART URL LOGIC
-  // This automatically switches the address based on the device
   static String get baseUrl {
     if (kIsWeb) {
-      return "http://127.0.0.1:5000/predict"; // Address for Chrome/Web
+      return "http://127.0.0.1:5000/predict"; 
     } else {
-      return "http://10.0.2.2:5000/predict";  // Address for Android Emulator
+      return "http://10.0.2.2:5000/predict";  
     }
   }
 
   Future<FloodModel> getPrediction(String city) async {
     try {
-      print("Connecting to: $baseUrl with city: $city"); // Debug print
+      print("Connecting to: $baseUrl with city: $city");
 
       final response = await http.post(
         Uri.parse(baseUrl),
         headers: {
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*" // Good practice for Web requests
+          "Access-Control-Allow-Origin": "*" 
         },
         body: jsonEncode({"city": city}),
       );
@@ -32,23 +30,19 @@ class ApiFloodService {
         final data = jsonDecode(response.body);
         return FloodModel.fromJson(data);
       } else {
-        // Handle error (e.g. City not found returns 404)
-        return _getErrorModel("Kota tidak ditemukan atau Server Error");
+        return _getErrorModel("NotFound");
       }
     } catch (e) {
       print("Error connecting to API: $e");
-      return _getErrorModel("Gagal koneksi ke Server (Cek Terminal Python)");
+      return _getErrorModel("Error");
     }
   }
 
-  // Helper function to create an Error Model cleanly
-  FloodModel _getErrorModel(String msg) {
+  // FIXED: Adjusted to match the new FloodModel constructor
+  FloodModel _getErrorModel(String errorType) {
     return FloodModel(
-      risk: "NotFound",
-      weather: msg,
-      beforeFlood: [],
-      duringFlood: [],
-      afterFlood: [],
+      risk: errorType, // "NotFound" or "Error"
+      cityName: "Error",
     );
   }
 }
