@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/flood_model.dart';
-import '../services/mock_flood_service.dart';
-import '../services/mock_user_service.dart'; // Import Service User
+// import '../services/mock_flood_service.dart';
+import '../services/user_service.dart'; // Import Service User
+import '../services/api_flood_service.dart'; // CHANGE THIS IMPORT
 import 'mitigation_page.dart';
 import 'emergency_page.dart';
 import 'profile_page.dart';
@@ -14,19 +15,16 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // 1. Variabel State
   final TextEditingController _cityController = TextEditingController();
-  final MockFloodService _floodService = MockFloodService();
-  final MockUserService _userService = MockUserService(); // Panggil Service User
+  final MockUserService _userService = MockUserService();
+  // CHANGE THIS LINE: Use the API Service instead of Mock
+  final ApiFloodService _floodService = ApiFloodService(); 
   
   FloodModel? _floodData;
   bool _isLoading = false;
 
-  // 2. Fungsi Pencarian
   void _searchRisk(String query) async {
     if (query.isEmpty) return;
-    
-    // Tutup keyboard biar rapi
     FocusScope.of(context).unfocus();
 
     setState(() {
@@ -34,10 +32,7 @@ class _HomePageState extends State<HomePage> {
       _floodData = null;
     });
 
-    // Update teks di controller agar sinkron
-    _cityController.text = query; 
-
-    // Panggil Service
+    // The API call happens here
     FloodModel result = await _floodService.getPrediction(query);
 
     setState(() {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/mock_user_service.dart'; // Import Service User
+import '../services/user_service.dart'; // Import Service User
 import 'landing_page.dart';
 
 class ProfilePage extends StatefulWidget {
